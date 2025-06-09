@@ -10,7 +10,7 @@ use std::sync::{atomic, Arc};
 use std::time::Duration;
 
 // extern crates
-use socks::Socks5Stream;
+use socks::{SocketAddrOrUnixSocketAddr, Socks5Stream};
 
 // internal crates
 use crate::censorship_circumvention::*;
@@ -166,8 +166,8 @@ pub enum LegacyTorClientConfig {
         bridge_lines: Option<Vec<BridgeLine>>,
     },
     SystemTor {
-        tor_socks_addr: SocketAddr,
-        tor_control_addr: SocketAddr,
+        tor_socks_addr: SocketAddrOrUnixSocketAddr,
+        tor_control_addr: SocketAddrOrUnixSocketAddr,
         tor_control_auth: Option<TorAuth>,
     },
 }
@@ -193,7 +193,7 @@ pub struct LegacyTorClient {
     version: LegacyTorVersion,
     controller: LegacyTorController,
     bootstrapped: bool,
-    socks_listener: Option<SocketAddr>,
+    socks_listener: Option<SocketAddrOrUnixSocketAddr>,
     // list of open onion services and their is_active flag
     onion_services: Vec<(V3OnionServiceId, Arc<atomic::AtomicBool>)>,
     // our list of circuit tokens for the tor daemon
@@ -232,9 +232,8 @@ impl LegacyTorClient {
                 tor_control_auth,
             } => {
                 // open a control stream
-                let control_stream =
-                    LegacyControlStream::new(&tor_control_addr, Duration::from_millis(16))
-                        .map_err(Error::LegacyControlStreamCreationFailed)?;
+                let control_stream = LegacyControlStream::new(tor_control_addr, Duration::from_millis(16))
+                    .map_err(Error::LegacyControlStreamCreationFailed)?;
 
                 // create a controler
                 let controller = LegacyTorController::new(control_stream)
@@ -244,7 +243,7 @@ impl LegacyTorClient {
                     None,
                     controller,
                     tor_control_auth.take(),
-                    Some(tor_socks_addr.clone()),
+                    Some(tor_socks_addr.clone().into()),
                 )
             }
         };
@@ -600,10 +599,10 @@ impl TorProvider for LegacyTorClient {
             if listeners.is_empty() {
                 return Err(Error::NoSocksListenersFound())?;
             }
-            self.socks_listener = Some(listeners.swap_remove(0));
+            self.socks_listener = Some(SocketAddrOrUnixSocketAddr::SocketAddr(listeners.swap_remove(0)));
         }
 
-        let socks_listener = match self.socks_listener {
+        let socks_listener = match self.socks_listener.as_ref() {
             Some(socks_listener) => socks_listener,
             None => unreachable!(),
         };
@@ -622,10 +621,10 @@ impl TorProvider for LegacyTorClient {
 
         // readwrite stream
         let stream = match &circuit {
-            None => Socks5Stream::connect(socks_listener, socks_target),
+            None => Socks5Stream::connect_either(socks_listener, socks_target),
             Some(circuit) => {
                 if let Some(circuit) = self.circuit_tokens.get(circuit) {
-                    Socks5Stream::connect_with_password(
+                    Socks5Stream::connect_either_with_password(
                         socks_listener,
                         socks_target,
                         &circuit.username,
