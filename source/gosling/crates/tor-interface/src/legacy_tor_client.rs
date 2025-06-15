@@ -9,6 +9,7 @@ use std::string::ToString;
 use std::sync::{atomic, Arc};
 use std::time::Duration;
 use std::str::FromStr;
+use zeroize::ZeroizeOnDrop;
 #[cfg(unix)]
 use std::os::unix::net::SocketAddr as UnixSocketAddr;
 
@@ -174,9 +175,10 @@ pub enum LegacyTorClientConfig {
         tor_control_auth: Option<TorAuth>,
     },
 }
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, ZeroizeOnDrop)]
 pub enum TorAuth {
     Password(String),
+    #[zeroize(skip)]
     Cookie(PathBuf),
     CookieData([u8; 32]),
 }
@@ -295,7 +297,7 @@ pub struct LegacyTorClient {
 impl LegacyTorClient {
     /// Construct a new `LegacyTorClient` from a [`LegacyTorClientConfig`].
     pub fn new(mut config: LegacyTorClientConfig) -> Result<LegacyTorClient, Error> {
-        let (daemon, mut controller, auth, socks_listener) = match &mut config {
+        let (daemon, mut controller, mut auth, socks_listener) = match &mut config {
             LegacyTorClientConfig::BundledTor {
                 tor_bin_path,
                 data_directory,
@@ -340,11 +342,11 @@ impl LegacyTorClient {
         };
 
         // authenticate
-        match auth {
+        match auth.as_mut() {
             None => controller.authenticate_auto(),
             Some(TorAuth::Password(pass)) => controller.authenticate(&pass),
-            Some(TorAuth::Cookie(file)) => controller.authenticate_cookie(crate::legacy_tor_controller::read_cookie(&file).map_err(|e| Error::CookieReadingFailed(e, file))?),
-            Some(TorAuth::CookieData(cookie)) => controller.authenticate_cookie(cookie),
+            Some(TorAuth::Cookie(file)) => controller.authenticate_cookie(crate::legacy_tor_controller::read_cookie(&file).map_err(|e| Error::CookieReadingFailed(e, std::mem::take(file)))?),
+            Some(TorAuth::CookieData(cookie)) => controller.authenticate_cookie(*cookie),
         }.map_err(Error::LegacyTorProcessAuthenticationFailed)?;
 
         // min required version for v3 client auth (see control-spec.txt)

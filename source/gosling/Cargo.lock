@@ -3297,8 +3297,7 @@ dependencies = [
 [[package]]
 name = "socks"
 version = "0.3.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c3dbbd9ae980613c6dd8e28a9407b50509d3803b57624d5dfe8315218cd58b"
+source = "git+https://github.com/nabijaczleweli/rust-socks#fe9ae86e0a76373c33969aef7a42690e2c708cde"
 dependencies = [
  "byteorder",
  "libc",
@@ -4235,12 +4234,14 @@ dependencies = [
  "data-encoding",
  "data-encoding-macro",
  "domain",
+ "hmac",
  "idna",
  "rand 0.9.1",
  "rand_core 0.9.3",
  "regex",
  "serial_test",
  "sha1",
+ "sha2",
  "sha3",
  "signature 1.6.4",
  "socks",
@@ -4256,6 +4257,7 @@ dependencies = [
  "tor-proto",
  "tor-rtcompat",
  "which",
+ "zeroize",
 ]
 
 [[package]]
