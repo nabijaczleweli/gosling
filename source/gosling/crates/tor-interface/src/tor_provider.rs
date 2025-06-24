@@ -404,6 +404,14 @@ impl OnionListener {
             }
         }
     }
+
+    /// `TcpListener::try_clone()` the inner listener
+    ///
+    /// The lifetime of the hidden service itself is still bound to this object,
+    /// but the resulting [`TcpListener`] may be polled/`accept`ed independently
+    pub fn try_clone_inner(&self) -> std::io::Result<TcpListener> {
+        self.listener.try_clone()
+    }
 }
 
 impl Drop for OnionListener {
