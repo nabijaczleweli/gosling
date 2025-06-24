@@ -412,6 +412,11 @@ impl OnionListener {
     pub fn try_clone_inner(&self) -> std::io::Result<TcpListener> {
         self.listener.try_clone()
     }
+
+    /// Address this listener is listening on
+    pub fn address(&self) -> &OnionAddr {
+        &self.onion_addr
+    }
 }
 
 impl Drop for OnionListener {
