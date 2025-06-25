@@ -1,7 +1,6 @@
 // standard
 use std::clone::Clone;
 use std::convert::TryInto;
-use std::net::TcpStream;
 
 // extern crates
 use bson::doc;
@@ -13,6 +12,7 @@ use honk_rpc::honk_rpc::{
 use rand::rngs::OsRng;
 use rand::{rand_core, TryRngCore};
 use tor_interface::tor_crypto::*;
+use tor_interface::tor_provider::TcpOrUnixStream;
 
 // internal crates
 use crate::ascii_string::*;
@@ -73,7 +73,7 @@ pub(crate) enum IdentityClientState {
 //
 pub(crate) struct IdentityClient {
     // session data
-    rpc: Session<TcpStream>,
+    rpc: Session<TcpOrUnixStream>,
     server_service_id: V3OnionServiceId,
     requested_endpoint: AsciiString,
     client_service_id: V3OnionServiceId,
@@ -95,7 +95,7 @@ impl IdentityClient {
     }
 
     pub fn new(
-        rpc: Session<TcpStream>,
+        rpc: Session<TcpOrUnixStream>,
         server_service_id: V3OnionServiceId,
         requested_endpoint: AsciiString,
         client_identity_ed25519_private: Ed25519PrivateKey,

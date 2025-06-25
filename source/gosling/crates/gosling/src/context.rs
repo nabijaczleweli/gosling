@@ -1,7 +1,6 @@
 // standard
 use std::clone::Clone;
 use std::collections::{BTreeMap, HashMap, VecDeque};
-use std::net::TcpStream;
 use std::time::Duration;
 
 // extern crates
@@ -268,7 +267,7 @@ pub enum ContextEvent {
         /// The ASCII-encoded name of the requested channel on the endpoint server
         channel_name: String,
         /// The resulting TCP connection to the endpoint server
-        stream: TcpStream,
+        stream: TcpOrUnixStream,
     },
 
     /// An outgoing endpoint handshake has failed.
@@ -320,7 +319,7 @@ pub enum ContextEvent {
         /// The ASCII-encoded name of the client's requested channel
         channel_name: String,
         /// The resulting TCP connection to tohe endpoint clientt
-        stream: TcpStream,
+        stream: TcpOrUnixStream,
     },
 
     /// An endpoint server has rejected an endpoint client's channel request.
@@ -429,7 +428,7 @@ impl Context {
         }
 
         // open tcp stream to remove ident server
-        let stream: TcpStream = self
+        let stream: TcpOrUnixStream = self
             .tor_provider
             .connect(
                 (identity_server_id.clone(), self.identity_port).into(),
@@ -597,7 +596,7 @@ impl Context {
 
         self.tor_provider
             .add_client_auth(&endpoint_server_id, &client_auth_key)?;
-        let stream: TcpStream = self
+        let stream: TcpOrUnixStream = self
             .tor_provider
             .connect(
                 (endpoint_server_id.clone(), self.endpoint_port).into(),
@@ -732,7 +731,7 @@ impl Context {
         identity_private_key: &Ed25519PrivateKey,
     ) -> Result<Option<IdentityServer>, Error> {
         if let Some(stream) = identity_listener.accept()? {
-            let stream: TcpStream = stream.into();
+            let stream: TcpOrUnixStream = stream.into();
             if stream.set_nonblocking(true).is_err() {
                 return Ok(None);
             }
@@ -756,7 +755,7 @@ impl Context {
         endpoint_service_id: &V3OnionServiceId,
     ) -> Result<Option<EndpointServer>, Error> {
         if let Some(stream) = endpoint_listener.accept()? {
-            let stream: TcpStream = stream.into();
+            let stream: TcpOrUnixStream = stream.into();
             if stream.set_nonblocking(true).is_err() {
                 return Ok(None);
             }

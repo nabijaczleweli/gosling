@@ -1,7 +1,6 @@
 // standard
 use std::clone::Clone;
 use std::convert::TryInto;
-use std::net::TcpStream;
 
 // extern crates
 use bson::doc;
@@ -11,6 +10,7 @@ use honk_rpc::honk_rpc::{RequestCookie, Response, Session};
 use rand::rngs::OsRng;
 use rand::{rand_core, TryRngCore};
 use tor_interface::tor_crypto::*;
+use tor_interface::tor_provider::TcpOrUnixStream;
 
 // internal crates
 use crate::ascii_string::*;
@@ -39,7 +39,7 @@ pub enum Error {
 }
 
 pub(crate) enum EndpointClientEvent {
-    HandshakeCompleted { stream: TcpStream },
+    HandshakeCompleted { stream: TcpOrUnixStream },
 }
 
 #[derive(Debug, PartialEq)]
@@ -52,7 +52,7 @@ enum EndpointClientState {
 
 pub(crate) struct EndpointClient {
     // session data
-    rpc: Option<Session<TcpStream>>,
+    rpc: Option<Session<TcpOrUnixStream>>,
     pub server_service_id: V3OnionServiceId,
     pub requested_channel: AsciiString,
     client_service_id: V3OnionServiceId,
@@ -70,7 +70,7 @@ impl EndpointClient {
     }
 
     pub fn new(
-        rpc: Session<TcpStream>,
+        rpc: Session<TcpOrUnixStream>,
         server_service_id: V3OnionServiceId,
         requested_channel: AsciiString,
         client_ed25519_private: Ed25519PrivateKey,

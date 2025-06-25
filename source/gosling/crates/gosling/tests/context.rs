@@ -1,6 +1,5 @@
 // standard
 use std::io::{BufRead, BufReader, Write};
-use std::net::TcpStream;
 #[cfg(feature = "arti-client-tor-provider")]
 use std::sync::Arc;
 
@@ -129,7 +128,7 @@ fn test_arti_client_gosling_context() -> anyhow::Result<()> {
 
 #[cfg(test)]
 fn gosling_context_bootstrap_test(
-    mut tor_client: Box<dyn TorProvider>,
+    tor_client: Box<dyn TorProvider>,
 ) -> anyhow::Result<()> {
     // Bootstrap
     let private_key = Ed25519PrivateKey::generate();
@@ -616,8 +615,8 @@ fn gosling_context_test(
     // Alice and Pat await hndshake result
     println!("Endpoint handshake completing");
     let (alice_server_stream, mut pat_client_stream) = {
-        let mut alice_server_stream: Option<TcpStream> = None;
-        let mut pat_client_stream: Option<TcpStream> = None;
+        let mut alice_server_stream: Option<TcpOrUnixStream> = None;
+        let mut pat_client_stream: Option<TcpOrUnixStream> = None;
 
         let mut pat_endpoint_client_handshake_completed: bool = false;
         let mut alice_endpoint_server_handshake_completed: bool = false;
@@ -666,7 +665,7 @@ fn gosling_context_test(
         (alice_server_stream.unwrap(), pat_client_stream.unwrap())
     };
 
-    println!("Endpoint handshake complete, TcpStreams returned");
+    println!("Endpoint handshake complete, TcpOrUnixStreams returned");
 
     pat_client_stream.write(b"Hello World!\n")?;
     pat_client_stream.flush()?;
@@ -679,7 +678,7 @@ fn gosling_context_test(
 
     assert_eq!(response, "Hello World!\n");
 
-    println!("TcpStream communication succesful");
+    println!("TcpOrUnixStream communication succesful");
 
     Ok(())
 }
