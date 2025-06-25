@@ -1,14 +1,16 @@
 use std::io::Write;
 use tor_interface::legacy_tor_client::{LegacyTorClientConfig, LegacyTorClient};
 use tor_interface::tor_provider::TorProvider;
+use tor_interface::tor_crypto::Ed25519PrivateKey;
 
 fn main() {
     let mut client = LegacyTorClient::new(LegacyTorClientConfig::system_from_environment().expect("No configuration in the environment")).unwrap();
     client.bootstrap().unwrap();
     println!("{:?}", client.update().unwrap());
 
-    let (pk, ol) = client.customised_listener(None, 80, None, ([127, 0, 0, 1], 0).into()).unwrap();
-    println!("http://{}.onion", tor_interface::tor_crypto::V3OnionServiceId::from_private_key(&pk.unwrap()));
+    let pk = Ed25519PrivateKey::generate();
+    let ol = client.listener(&pk, 80, None, None).unwrap();
+    println!("http://{}.onion", tor_interface::tor_crypto::V3OnionServiceId::from_private_key(&pk));
 
     loop {
         for u in client.update().unwrap() {

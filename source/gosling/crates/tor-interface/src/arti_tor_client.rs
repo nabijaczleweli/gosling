@@ -2,6 +2,7 @@
 use std::collections::BTreeMap;
 use std::ops::DerefMut;
 use std::path::PathBuf;
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -235,6 +236,7 @@ impl TorProvider for ArtiTorClient {
         _private_key: &Ed25519PrivateKey,
         _virt_port: u16,
         _authorized_clients: Option<&[X25519PublicKey]>,
+        _bind_addr: Option<SocketAddr>,
     ) -> Result<OnionListener, tor_provider::Error> {
         Err(Error::NotImplemented().into())
     }

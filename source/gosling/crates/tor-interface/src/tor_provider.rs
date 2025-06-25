@@ -455,12 +455,13 @@ pub trait TorProvider: Send {
     ) -> Result<OnionStream, Error>;
     /// Anonymously start an onion-service and return the associated [`OnionListener`].
     ///
-    ///The resulting onion-service will not be reachable by clients until [`TorProvider::update()`] returns a [`TorEvent::OnionServicePublished`] event. The optional `authorised_clients` parameter may be used to require client authorisation keys to connect to resulting onion-service. For further information, see the Tor Project's onion-services [client-auth documentation](https://community.torproject.org/onion-services/advanced/client-auth).
+    ///The resulting onion-service will not be reachable by clients until [`TorProvider::update()`] returns a [`TorEvent::OnionServicePublished`] event. The optional `authorised_clients` parameter may be used to require client authorisation keys to connect to resulting onion-service. `bind_addr` may be used to force a specific address and port. For further information, see the Tor Project's onion-services [client-auth documentation](https://community.torproject.org/onion-services/advanced/client-auth).
     fn listener(
         &mut self,
         private_key: &Ed25519PrivateKey,
         virt_port: u16,
         authorised_clients: Option<&[X25519PublicKey]>,
+        bind_addr: Option<SocketAddr>,
     ) -> Result<OnionListener, Error>;
     /// Create a new [`CircuitToken`].
     fn generate_token(&mut self) -> CircuitToken;

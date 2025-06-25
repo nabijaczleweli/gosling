@@ -744,9 +744,50 @@ impl TorProvider for LegacyTorClient {
         private_key: &Ed25519PrivateKey,
         virt_port: u16,
         authorized_clients: Option<&[X25519PublicKey]>,
+        bind_addr: Option<SocketAddr>,
     ) -> Result<OnionListener, tor_provider::Error> {
-        self.customised_listener(Some(private_key), virt_port, authorized_clients, ([127, 0, 0, 1], 0u16).into())
-            .map(|(_, ol)| ol)
+        if !self.bootstrapped {
+            return Err(Error::LegacyTorNotBootstrapped().into());
+        }
+
+        // try to bind to a local address, let OS pick our port
+        let bind_addr = bind_addr.unwrap_or(([127, 0, 0, 1], 0u16).into());
+        let listener = TcpListener::bind(bind_addr).map_err(Error::TcpListenerBindFailed)?;
+        let socket_addr = listener
+            .local_addr()
+            .map_err(Error::TcpListenerLocalAddrFailed)?;
+
+        let flags = AddOnionFlags {
+            discard_pk: true,
+            v3_auth: authorized_clients.is_some(),
+            ..Default::default()
+        };
+
+        // start onion service
+        let (_, service_id) = self
+            .controller
+            .add_onion(
+                Some(private_key),
+                &flags,
+                None,
+                virt_port,
+                Some(socket_addr),
+                authorized_clients,
+            )
+            .map_err(Error::AddOnionFailed)?;
+
+        let onion_addr = OnionAddr::V3(OnionAddrV3::new(
+            V3OnionServiceId::from_private_key(private_key),
+            virt_port,
+        ));
+
+        let is_active = Arc::new(atomic::AtomicBool::new(true));
+        self.onion_services
+            .push((service_id, Arc::clone(&is_active)));
+
+        Ok(OnionListener::new(listener, onion_addr, is_active, |is_active| {
+            is_active.store(false, atomic::Ordering::Relaxed);
+        }))
     }
 
     fn generate_token(&mut self) -> CircuitToken {
@@ -759,58 +800,5 @@ impl TorProvider for LegacyTorClient {
 
     fn release_token(&mut self, circuit_token: CircuitToken) {
         self.circuit_tokens.remove(&circuit_token);
-    }
-}
-
-impl LegacyTorClient {
-    // stand up an onion service and return an OnionListener
-    pub fn customised_listener(
-        &mut self,
-        private_key: Option<&Ed25519PrivateKey>,
-        virt_port: u16,
-        authorized_clients: Option<&[X25519PublicKey]>,
-        socket_addr: SocketAddr,
-    ) -> Result<(Option<Ed25519PrivateKey>, OnionListener), tor_provider::Error> {
-        if !self.bootstrapped {
-            return Err(Error::LegacyTorNotBootstrapped().into());
-        }
-
-        // try to bind to a local address, let OS pick our port
-        let listener = TcpListener::bind(socket_addr).map_err(Error::TcpListenerBindFailed)?;
-        let socket_addr = listener
-            .local_addr()
-            .map_err(Error::TcpListenerLocalAddrFailed)?;
-
-        let flags = AddOnionFlags {
-            discard_pk: private_key.is_some(),
-            v3_auth: authorized_clients.is_some(),
-            ..Default::default()
-        };
-
-        // start onion service
-        let (private_key_ret, service_id) = self
-            .controller
-            .add_onion(
-                private_key,
-                &flags,
-                None,
-                virt_port,
-                Some(socket_addr),
-                authorized_clients,
-            )
-            .map_err(Error::AddOnionFailed)?;
-
-        let onion_addr = OnionAddr::V3(OnionAddrV3::new(
-            V3OnionServiceId::from_private_key(private_key.or(private_key_ret.as_ref()).expect("either we got private_key or we generated one")),
-            virt_port,
-        ));
-
-        let is_active = Arc::new(atomic::AtomicBool::new(true));
-        self.onion_services
-            .push((service_id, Arc::clone(&is_active)));
-
-        Ok((private_key_ret, OnionListener::new(listener, onion_addr, is_active, |is_active| {
-            is_active.store(false, atomic::Ordering::Relaxed);
-        })))
     }
 }

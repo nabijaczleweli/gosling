@@ -364,7 +364,7 @@ pub(crate) fn basic_onion_service_test(
 
         println!("Starting and listening to onion service");
         const VIRT_PORT: u16 = 42069u16;
-        let listener = tor.listener(&private_key, VIRT_PORT, None)?;
+        let listener = tor.listener(&private_key, VIRT_PORT, None, None)?;
 
         let mut onion_published = false;
         while !onion_published {
@@ -492,7 +492,7 @@ pub(crate) fn authenticated_onion_service_test(
         println!("Starting and listening to authenticated onion service");
         const VIRT_PORT: u16 = 42069u16;
         let listener =
-            server_provider.listener(&private_key, VIRT_PORT, Some(&[public_auth_key]))?;
+            server_provider.listener(&private_key, VIRT_PORT, Some(&[public_auth_key]), None)?;
 
         let mut onion_published = false;
         while !onion_published {

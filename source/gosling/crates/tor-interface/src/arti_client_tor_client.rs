@@ -374,10 +374,11 @@ impl TorProvider for ArtiClientTorClient {
         private_key: &Ed25519PrivateKey,
         virt_port: u16,
         authorized_clients: Option<&[X25519PublicKey]>,
+        bind_addr: Option<SocketAddr>,
     ) -> Result<OnionListener, tor_provider::Error> {
 
         // try to bind to a local address, let OS pick our port
-        let socket_addr = SocketAddr::from(([127, 0, 0, 1], 0u16));
+        let socket_addr = bind_addr.unwrap_or(SocketAddr::from(([127, 0, 0, 1], 0u16)));
         // TODO: make this one async too
         let listener =
             std::net::TcpListener::bind(socket_addr).map_err(Error::TcpListenerBindFailed)?;

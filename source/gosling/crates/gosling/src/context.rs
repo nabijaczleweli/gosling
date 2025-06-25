@@ -501,7 +501,7 @@ impl Context {
 
         let identity_listener =
             self.tor_provider
-                .listener(&self.identity_private_key, self.identity_port, None)?;
+                .listener(&self.identity_private_key, self.identity_port, None, None)?;
         identity_listener.set_nonblocking(true)?;
 
         self.identity_listener = Some(identity_listener);
@@ -675,6 +675,7 @@ impl Context {
             &endpoint_private_key,
             self.endpoint_port,
             Some(&[client_auth]),
+            None,
         )?;
         endpoint_listener.set_nonblocking(true)?;
 
