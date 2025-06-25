@@ -569,14 +569,14 @@ pub unsafe extern "C" fn gosling_tor_provider_config_new_system_legacy_client_co
             Some(tor_socks_host) => tor_socks_host.clone(),
             None => bail_invalid_handle!(tor_socks_host),
         };
-        let tor_socks_addr = std::net::SocketAddr::new(tor_socks_host, tor_socks_port);
+        let tor_socks_addr = std::net::SocketAddr::new(tor_socks_host, tor_socks_port).into();
 
         // construct tor_control_addr
         let tor_control_host = match get_ip_addr_registry().get(tor_control_host as usize) {
             Some(tor_control_host) => tor_control_host.clone(),
             None => bail_invalid_handle!(tor_control_host),
         };
-        let tor_control_addr = std::net::SocketAddr::new(tor_control_host, tor_control_port);
+        let tor_control_addr = std::net::SocketAddr::new(tor_control_host, tor_control_port).into();
 
         // construct tor_control_password
         let tor_control_passwd =
@@ -586,7 +586,7 @@ pub unsafe extern "C" fn gosling_tor_provider_config_new_system_legacy_client_co
         let tor_config = LegacyTorClientConfig::SystemTor {
             tor_socks_addr,
             tor_control_addr,
-            tor_control_passwd,
+            tor_control_auth: Some(TorAuth::Password(tor_control_passwd)),
         };
 
         let handle = get_tor_provider_config_registry()

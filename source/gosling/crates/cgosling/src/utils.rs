@@ -1,6 +1,6 @@
 // standard
 use std::convert::TryFrom;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, TcpStream};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::os::raw::c_char;
 #[cfg(unix)]
 use std::os::unix::io::IntoRawFd;
@@ -12,7 +12,7 @@ use std::str::FromStr;
 use anyhow::bail;
 #[cfg(feature = "impl-lib")]
 use cgosling_proc_macros::*;
-use tor_interface::tor_provider::{CircuitToken, DomainAddr, OnionAddr, OnionAddrV3, TargetAddr};
+use tor_interface::tor_provider::{CircuitToken, DomainAddr, OnionAddr, OnionAddrV3, TargetAddr, TcpOrUnixStream};
 
 // internal
 use crate::context::*;
@@ -157,7 +157,7 @@ pub extern "C" fn gosling_context_connect(
         };
 
         let onion_stream = context.0.connect(target_address, Some(circuit_token))?;
-        let tcp_stream: TcpStream = onion_stream.into();
+        let tcp_stream: TcpOrUnixStream = onion_stream.into();
 
         #[cfg(any(target_os = "linux", target_os = "macos"))]
         let tcp_socket = tcp_stream.into_raw_fd();
